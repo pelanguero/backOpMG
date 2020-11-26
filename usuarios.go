@@ -4,7 +4,9 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -34,7 +36,6 @@ func crearUsuarioruta(c *gin.Context) {
 	} else {
 		c.JSON(http.StatusOK, gin.H{"id": id})
 	}
-	corsmiddle(c)
 }
 
 //crea el usuario en la base de datos
@@ -67,4 +68,46 @@ func Create(user *Usuario) (primitive.ObjectID, error, bool) {
 	}
 
 	return oid, nil, existe
+}
+
+func iniciosesion(c *gin.Context) {
+
+	var creds Credenciales
+	var testt Usuario
+	err := c.ShouldBindJSON(&creds)
+	if err != nil {
+		log.Print(err)
+		log.Print(creds.Correo)
+		c.JSON(http.StatusLocked, gin.H{"msg": err})
+		return
+	}
+	filtro := bson.M{"correo": creds.Correo}
+	client, ctx, cancel := mongoConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
+
+	errorr := client.Database("omgtest").Collection("usuarios").FindOne(context.TODO(), filtro).Decode(&testt)
+	if errorr != nil {
+		log.Println(errorr)
+	}
+	if testt.Correo == creds.Correo && verificarpw(testt.Clave, creds.Clave) {
+		expirationTime := time.Now().Add(24 * time.Hour)
+		claims := &Claims{
+			Correo: creds.Correo,
+			StandardClaims: jwt.StandardClaims{
+				ExpiresAt: expirationTime.Unix(),
+			},
+		}
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		tokenString, errr := token.SignedString(jwtkey)
+		if errr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"msg": errr})
+		}
+		c.SetCookie("t", tokenString, expirationTime.Second()-time.Now().Second(), "/iniciodesesion", "localhost", false, true)
+		c.JSON(http.StatusAccepted, gin.H{"Name": "token", "token": tokenString, "Expira": expirationTime, "usuario": creds.Correo})
+	} else {
+
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Credenciales no validas"})
+	}
+
 }

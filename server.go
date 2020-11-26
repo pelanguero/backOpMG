@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -21,8 +22,17 @@ func main() {
 	router := gin.Default()
 	//userRoutes:=router.Group()
 	router.PUT("/registro", crearUsuarioruta)
+	router.PUT("/iniciodesesion", iniciosesion)
+	router.GET("/test", autoriza(), prueba)
 	router.GET("/")
+	router.Use(corsmiddle())
 	router.Run(":" + os.Getenv("PUERTO"))
+}
+
+func prueba(c *gin.Context) {
+	if c.Request.Response.Status == "200 OK" {
+		c.JSON(http.StatusOK, gin.H{"exito": "funciona bien"})
+	}
 }
 
 //conexion a mongodb retorna un cliente de mongo,contexto

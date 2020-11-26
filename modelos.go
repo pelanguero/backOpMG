@@ -30,3 +30,8 @@ type Usuario struct {
 	Role      rol
 	Historial []string
 }
+
+type Credenciales struct {
+	Clave  string
+	Correo string
+}
