@@ -66,23 +66,24 @@ func hashpw(pwd string) string {
 func autoriza() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		claim := &Claims{}
-		jwwt, errror := c.Cookie("t")
-		if errror != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Al leer la cookie " + errror.Error()})
-			return
-		}
+		jwwt := c.Request.Header.Get("token")
+		// if errror != nil {
+		// 	c.JSON(http.StatusBadRequest, gin.H{"error": "Al leer la cookie " + errror.Error()})
+		// 	return
+		// }
 		statuss := verificarjwt(jwwt, claim)
 		if 0 == statuss {
-			c.JSON(http.StatusOK, gin.H{})
+			c.JSON(http.StatusAccepted, gin.H{})
+			c.Next()
 			return
 		} else if statuss == 1 {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "No estas Autorizado"})
+			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		} else if statuss == -1 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Peticion invalida"})
+			c.AbortWithStatus(http.StatusBadRequest)
 			return
 		} else if statuss == 2 {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "No estas Autorizado, token no valido"})
+			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 	}

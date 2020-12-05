@@ -24,8 +24,9 @@ func main() {
 	router.PUT("/registro", crearUsuarioruta)
 	router.PUT("/iniciodesesion", iniciosesion)
 	router.GET("/test", autoriza(), prueba)
+	router.GET("/user/:id", autoriza(), userr)
 	router.GET("/")
-	router.Use(corsmiddle())
+	//router.Use(corsmiddle())
 	router.Run(":" + os.Getenv("PUERTO"))
 }
 
@@ -63,4 +64,33 @@ func mongoConnection() (*mongo.Client, context.Context, context.CancelFunc) {
 
 	fmt.Println("Conectado a MongoDB")
 	return client, ctx, cancel
+}
+
+//cors
+func CORSMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control,token, X-Requested-With,access-control-allow-origin")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	}
+}
+
+//da la informacion del usuario a partir del id de la url
+func userr(c *gin.Context) {
+	if c.Request.Response.StatusCode == 202 {
+		user := usuarioxid(c.Param("id"))
+		if user.Nombre != "" {
+			c.JSON(http.StatusOK, user)
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "usuario no existe"})
+		}
+	}
 }

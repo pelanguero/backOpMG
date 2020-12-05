@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -70,6 +71,7 @@ func Create(user *Usuario) (primitive.ObjectID, error, bool) {
 	return oid, nil, existe
 }
 
+//inicio de sesion retorna un jwt, crea una cookie
 func iniciosesion(c *gin.Context) {
 
 	var creds Credenciales
@@ -110,4 +112,23 @@ func iniciosesion(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Credenciales no validas"})
 	}
 
+}
+
+//busca un usuario con el id provisto
+func usuarioxid(id string) Usuario {
+	var retorno Usuario
+	pro, errror := primitive.ObjectIDFromHex(id)
+	if errror != nil {
+		fmt.Println(errror.Error())
+	}
+	filtro := bson.M{"id": pro}
+	client, ctx, cancel := mongoConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
+	erorr := client.Database("omgtest").Collection("usuarios").FindOne(ctx, filtro).Decode(&retorno)
+	if erorr != nil {
+		fmt.Println(erorr)
+	}
+
+	return retorno
 }
